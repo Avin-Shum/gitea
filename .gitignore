@@ -96,3 +96,8 @@ prime/
 
 # Make evidence files
 /.make_evidence
+
+# Temporary files
+*.bak
+*.txt
+gitea.exe
