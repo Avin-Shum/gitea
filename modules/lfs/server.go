@@ -39,6 +39,7 @@ type RequestVars struct {
 	Password      string
 	Repo          string
 	Authorization string
+	Host					string
 }
 
 // BatchVars contains multiple RequestVars processed in one batch operation.
@@ -78,14 +79,22 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
+func (v *RequestVars) AppURL() string {
+	return "https://"+v.Host+"/"
+}
+
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
+	log.Debug("LFS ObjectLink() - Host %s", v.Host)
+	return v.AppURL() + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
+	// return setting.AppURL() + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (v *RequestVars) VerifyLink() string {
-	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
+	log.Debug("LFS VerifyLink() - Host %s", v.Host)
+	return v.AppURL() + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
+	// return setting.AppURL() + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -523,6 +532,7 @@ func unpack(ctx *context.Context) *RequestVars {
 		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
 		Oid:           ctx.Params("oid"),
 		Authorization: r.Header.Get("Authorization"),
+		Host:  				 ctx.Req.Host,
 	}
 
 	if r.Method == "POST" { // Maybe also check if +json
@@ -564,6 +574,7 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 		bv.Objects[i].User = ctx.Params("username")
 		bv.Objects[i].Repo = strings.TrimSuffix(ctx.Params("reponame"), ".git")
 		bv.Objects[i].Authorization = r.Header.Get("Authorization")
+		bv.Objects[i].Host = ctx.Req.Host
 	}
 
 	return &bv
@@ -584,7 +595,7 @@ func writeStatus(ctx *context.Context, status int) {
 }
 
 func logRequest(r macaron.Request, status int) {
-	log.Debug("LFS request - Method: %s, URL: %s, Status %d", r.Method, r.URL, status)
+	log.Debug("LFS request - Method: %s, URL: %s, Status %d, Host %+v, RequestURI %s", r.Method, r.URL, status, r.Host, r.RequestURI)
 }
 
 // authenticate uses the authorization string to determine whether
